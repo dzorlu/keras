@@ -385,13 +385,16 @@ def standardize_weights(y, sample_weight=None, class_weight=None,
             return np.ones((y.shape[0], y.shape[1]), dtype=K.floatx())
 
 
-def generator_queue(generator, max_q_size=10,
+def generator_queue(generator, max_q_size=1,
                     wait_time=0.05, nb_worker=1, pickle_safe=False):
     '''Builds a queue out of a data generator.
     If pickle_safe, use a multiprocessing approach. Else, use threading.
-    Used in `fit_generator`, `evaluate_generator`, `predict_generator`.
+    Used in `fit_generator`, `evaluate_generator`, `   g`.
 
     '''
+
+    print("number of workers: {}".format(nb_worker))
+    print("Pickle safe set to {}".format(pickle_safe))
 
     generator_threads = []
     if pickle_safe:
@@ -1634,6 +1637,7 @@ class Model(Container):
                                  'or (x, y). Found: ' + str(generator_output))
             try:
                 outs = self.test_on_batch(x, y, sample_weight=sample_weight)
+
             except:
                 _stop.set()
                 raise
@@ -1701,7 +1705,9 @@ class Model(Container):
             nb_worker=nb_worker,
             pickle_safe=pickle_safe)
 
+        '''this keeps running till the condition is satisfied'''
         while processed_samples < val_samples:
+            print("number of images processed: {}".format(processed_samples))
             generator_output = None
             while not _stop.is_set():
                 if not data_gen_queue.empty():
@@ -1757,6 +1763,116 @@ class Model(Container):
                 if p.is_alive():
                     p.terminate()
             data_gen_queue.close()
+        print("length of the predict_gen output: {}".format(len(all_outs)))
         if len(all_outs) == 1:
             return all_outs[0]
         return all_outs
+
+    def bottleneck_generator(self, generator, val_samples,
+                          max_q_size=10, nb_worker=1, pickle_safe=False):
+        '''Generates predictions for the input samples from a data generator.
+        The generator should return the same kind of data as accepted by
+        `predict_on_batch`.
+
+
+        Return labels as well. With bottleneck generation,
+        we need the labels to train the top level subsequently.
+
+        # Arguments
+            generator: generator yielding batches of input samples.
+            val_samples: total number of samples to generate from `generator`
+                before returning.
+            max_q_size: maximum size for the generator queue
+            nb_worker: maximum number of processes to spin up
+                when using process based threading
+            pickle_safe: if True, use process based threading.
+                Note that because
+                this implementation relies on multiprocessing,
+                you should not pass
+                non picklable arguments to the generator
+                as they can't be passed
+                easily to children processes.
+
+        # Returns
+            Numpy array(s) of predictions + labels
+        '''
+        self._make_predict_function()
+
+        processed_samples = 0
+        wait_time = 0.01
+        all_outs = []
+        labels = []
+        data_gen_queue, _stop, generator_threads = generator_queue(
+            generator,
+            max_q_size=max_q_size,
+            nb_worker=nb_worker,
+            pickle_safe=pickle_safe)
+
+        '''this keeps running till the condition is satisfied'''
+        while processed_samples < val_samples:
+            print("number of images processed: {}".format(processed_samples))
+            generator_output = None
+            while not _stop.is_set():
+                if not data_gen_queue.empty():
+                    generator_output = data_gen_queue.get()
+                    break
+                else:
+                    time.sleep(wait_time)
+
+            if isinstance(generator_output, tuple):
+                if len(generator_output) == 2:
+                    x, y = generator_output
+                    sample_weight = None
+                elif len(generator_output) == 3:
+                    x, y, sample_weight = generator_output
+                else:
+                    _stop.set()
+                    raise ValueError('output of generator should be a tuple '
+                                     '(x, y, sample_weight) '
+                                     'or (x, y). Found: ' +
+                                     str(generator_output))
+            else:
+                x = generator_output
+
+            try:
+                outs = self.predict_on_batch(x)
+            except:
+                _stop.set()
+                raise
+
+            if isinstance(x, list):
+                nb_samples = len(x[0])
+            elif isinstance(x, dict):
+                nb_samples = len(list(x.values())[0])
+            else:
+                nb_samples = len(x)
+
+            if not isinstance(outs, list):
+                outs = [outs]
+
+            y = [y]
+
+            if len(all_outs) == 0:
+                for lbl, out in zip(y, outs):
+                    shape = (val_samples,) + out.shape[1:]
+                    shape_lb = (val_samples,) + lbl.shape[1:]
+                    all_outs.append(np.zeros(shape, dtype=K.floatx()))
+                    labels.append(np.zeros(shape_lb, dtype=K.floatx()))
+
+            for i, out in enumerate(zip(y, outs)):
+                y_ , x_ = out[0], out[1]
+                all_outs[i][processed_samples:(processed_samples + nb_samples)] = x_
+                labels[i][processed_samples:(processed_samples + nb_samples)] = y_
+            processed_samples += nb_samples
+
+        _stop.set()
+        if pickle_safe:
+            # Terminate all daemon processes
+            for p in generator_threads:
+                if p.is_alive():
+                    p.terminate()
+            data_gen_queue.close()
+        # if len(all_outs) == 1:
+        #     return all_outs[0]
+        print ("returning x, y in shape {} and {}".format(len(all_outs), len(labels)))
+        return all_outs, labels
