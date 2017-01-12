@@ -17,18 +17,70 @@ from collections import OrderedDict
 from itertools import chain
 import time
 
+import boto.s3
+from boto.s3.key import Key
+import zipfile
+
 # dimensions of our images.
 img_width, img_height = 299, 299
 todaysdate = time.strftime("%Y_%m_%d")
-TRAIN_DATA_DIR = '/Users/denizzorlu/style/data/train'
-VALID_DATA_DIR = '/Users/denizzorlu/style/data/validation'
-TOP_MODEL_WEIGHTS_PATH = '/Users/denizzorlu/keras/saved_models/bottleneck_fc_model_{}.h5'.format(todaysdate)
+
+
+IMAGE_BUCKET = "item-images-01"
+IMAGE_FILE_NAME = "data.zip"
+MODEL_BUCKET = "trained-models-keras"
+IMAGE_DIRECTORY = "/tmp/"
+REGION = "us-east-1"
+
+TRAIN_DATA_DIR = IMAGE_DIRECTORY + "train"
+VALID_DATA_DIR = IMAGE_DIRECTORY + "validation"
+
+#TRAIN_DATA_DIR = '/Users/denizzorlu/style/data/train'
+#VALID_DATA_DIR = '/Users/denizzorlu/style/data/validation'
+TOP_MODEL_WEIGHTS_PATH = IMAGE_DIRECTORY + "bottleneck_fc_model.h5"
 nb_epoch = 50
 BATCH_SIZE = 64
 SAMPLE_SIZE = BATCH_SIZE * 400
 VALIDATION_FRACTION = 0.2
 VAL_SAMPLE_SIZE = SAMPLE_SIZE * VALIDATION_FRACTION
 NB_WORKERS = 4
+
+
+""""""
+#TODO: Move this to util folder
+
+def retrieve_images():
+    retrieve_from_s3(incoming_bucket = IMAGE_BUCKET, file_to_retrieve = IMAGE_FILE_NAME)
+    unzip_file(IMAGE_FILE_NAME)
+    return key_string
+
+def unzip_file(file_to_unzip):
+    zip_ref = zipfile.ZipFile(IMAGE_DIRECTORY + file_to_unzip , 'r')
+    zip_ref.extractall(IMAGE_DIRECTORY)
+    zip_ref.close()
+
+def persist_to_s3(target_bucket, file_to_persist):
+    # send it to s3ta
+    s3c = boto.s3.connect_to_region(REGION)
+    b = s3c.get_bucket(target_bucket)
+    k = Key(b)
+    k.key = date.today().strftime("%m-%d-%Y")
+    k.set_contents_from_filename(file_to_persist)
+
+def persist_model_to_s3(model):
+    model.save_weights(TOP_MODEL_WEIGHTS_PATH)
+    persist_to_s3(MODEL_BUCKET,TOP_MODEL_WEIGHTS_PATH)
+
+def retrieve_from_s3(incoming_bucket, file_to_retrieve):
+    # send it to s3.
+    s3c = boto.s3.connect_to_region(REGION)
+    b = s3c.get_bucket(incoming_bucket)
+    bucket_list = b.list()
+    for l in bucket_list:
+        keyString = str(l.key)
+        if keyString == file_to_retrieve:
+            l.get_contents_to_filename(IMAGE_DIRECTORY + keyString)
+            print("{} extracted".format(keyString))
 
 def number_of_images(folder):
     class_totals = dict()
@@ -49,6 +101,35 @@ def create_labels(dir_):
     labels = to_categorical(labels)
     return labels, nb_labels
 
+def get_bottleneck_file_paths(val_):
+    val_ = ""
+    if validation:
+        val_ = "val_"
+    file_path_x = "{}bottleneck_x_{}.npy".format(IMAGE_DIRECTORY, val_)
+    file_path_y = "{}bottleneck_y_{}.npy".format(IMAGE_DIRECTORY,val_)
+    return file_path_x, file_path_y
+
+def save_bottleneck_features(x,y,validation=False):
+    filename_x, filename_y = get_bottleneck_filenames(validation)
+    np.save(open(filename_x, 'w'), x)
+    np.save(open(filename_y, 'w'), y)
+    persist_to_s3(MODEL_BUCKET, filename_x)
+    persist_to_s3(MODEL_BUCKET, filename_y)
+
+
+def load_bottleneck_features(validation=False):
+    file_path_x, file_path_y = get_bottleneck_file_paths(validation)
+    retrieve_from_s3(MODEL_BUCKET, filename_x)
+    retrieve_from_s3(MODEL_BUCKET, filename_y)
+
+    x = np.load(open(file_path_x))
+    y = np.load(open(file_path_y))
+
+    x, y = x[0,:,:,:], y[0,:,:]
+    return (x, y)
+
+""""""
+
 def sample_bottleneck_features():
     # Transfer learning
     model = InceptionV3(weights='imagenet', include_top=False)
@@ -68,9 +149,7 @@ def sample_bottleneck_features():
     nb_samples_rounded = int(SAMPLE_SIZE - SAMPLE_SIZE % float(BATCH_SIZE))
     x, y = model.bottleneck_generator(generator, nb_samples_rounded, nb_worker = NB_WORKERS)
 
-    np.save(open("saved_models/bottleneck_x_{}.npy".format(todaysdate), 'w'), x)
-    np.save(open("saved_models/bottleneck_y_{}.npy".format(todaysdate), 'w'), y)
-
+    save_bottleneck_features(x,y)
     print 'generated training bottlenecks'
     print('*'*10)
 
@@ -84,25 +163,18 @@ def sample_bottleneck_features():
             shuffle=True)
     nb_validation_samples_rounded = int(VAL_SAMPLE_SIZE - VAL_SAMPLE_SIZE % float(BATCH_SIZE))
     x_val, y_val = model.bottleneck_generator(generator, nb_validation_samples_rounded, nb_worker = NB_WORKERS)
+
     print 'generated validation bottlenecks'
-    np.save(open("saved_models/bottleneck_x_val_{}.npy".format(todaysdate), 'w'), x_val)
-    np.save(open("saved_models/bottleneck_y_val_{}.npy".format(todaysdate), 'w'), y_val)
+    save_bottleneck_features(x_val,y_val, validation=True)
+
+
     print 'bottleneck features saved....'
     print('*'*10)
 
 def train_top_model(date_=time.strftime("%Y_%m_%d")):
+    x, y = load_bottleneck_features()
+    x_val, y_val = load_bottleneck_features(validation=True)
 
-    def _load_bottlenecks(model_date):
-            x = np.load(open("saved_models/bottleneck_x_{}.npy".format(todaysdate)))
-            y = np.load(open("saved_models/bottleneck_y_{}.npy".format(todaysdate)))
-            x_val = np.load(open("saved_models/bottleneck_x_val_{}.npy".format(todaysdate)))
-            y_val = np.load(open("saved_models/bottleneck_y_val_{}.npy".format(todaysdate)))
-            x, y = x[0,:,:,:], y[0,:,:]
-            x_val, y_val = x_val[0,:,:,:], y_val[0,:,:]
-            return (x, y, x_val, y_val)
-
-    todaysdate = '2017_01_09'
-    x, y, x_val, y_val = _load_bottlenecks(todaysdate)
     print('found saved bottleneck features with shape: {}'.format(x.shape))
 
     print('*'*10)
@@ -129,14 +201,15 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
         validation_data = (x_val, y_val),
         nb_epoch = nb_epoch)
 
-    #, validation_split= 0.1, validation_data = (x_val, y_val, val_sample_weights) )
-    model.save_weights(TOP_MODEL_WEIGHTS_PATH)
+    persist_model_to_s3(model)
+
     print 'model trained'
     return hist_
 
 if __name__ == "__main__":
+    key_string = retrieve_images()
     start = time.time()
-    sample_bottleneck_features()
+    sample_bottleneck_features(key_string)
     t1 = time.time()
     print 'bottleneck generation took {} seconds...'.format( t1 - start)
     hist_ = train_top_model()
