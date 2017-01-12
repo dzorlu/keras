@@ -29,8 +29,8 @@ MODEL_BUCKET = "trained-models-keras"
 IMAGE_DIRECTORY = "/tmp/"
 REGION = "us-east-1"
 
-TRAIN_DATA_DIR = IMAGE_DIRECTORY + "data/train"
-VALID_DATA_DIR = IMAGE_DIRECTORY + "data/validation"
+TRAIN_DATA_DIR =  "data/train"
+VALID_DATA_DIR =  "data/validation"
 
 #TRAIN_DATA_DIR = '/Users/denizzorlu/style/data/train'
 #VALID_DATA_DIR = '/Users/denizzorlu/style/data/validation'
@@ -205,7 +205,7 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
 
 if __name__ == "__main__":
     start = time.time()
-    retrieve_images()
+    #retrieve_images()
     sample_bottleneck_features()
     t1 = time.time()
     print 'bottleneck generation took {} seconds...'.format( t1 - start)
