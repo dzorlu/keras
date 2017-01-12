@@ -47,8 +47,9 @@ NB_WORKERS = 4
 #TODO: Move this to util folder
 
 def retrieve_images():
+    print("retrieving images..")
     retrieve_from_s3(incoming_bucket = IMAGE_BUCKET, file_to_retrieve = IMAGE_FILE_NAME)
-    unzip_file(IMAGE_FILE_NAME)
+    unzip_file()
     print("images unzipped..")
 
 def unzip_file():
