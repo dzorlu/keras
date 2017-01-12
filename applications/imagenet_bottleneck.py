@@ -205,7 +205,7 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
 
 if __name__ == "__main__":
     start = time.time()
-    retrieve_images()
+    #retrieve_images()
     t0 = time.time()
     print 'retrieving images took {} seconds...'.format( t0 - start)
     sample_bottleneck_features()
