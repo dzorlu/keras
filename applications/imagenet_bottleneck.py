@@ -6,7 +6,7 @@ from keras.models import Sequential
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense, Input, InputLayer
 from keras.applications.inception_v3 import InceptionV3
-from keras. import activations, initializations, regularizers, constraints
+from keras import activations, initializations, regularizers, constraints
 
 import os
 import numpy as np
