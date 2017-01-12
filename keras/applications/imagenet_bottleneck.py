@@ -1,15 +1,15 @@
 #!/usr/bin/python
 from __future__ import absolute_import
 
-from keras.preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
-from keras.models import Sequential
-from keras.layers import Convolution2D, MaxPooling2D
-from keras.layers import Activation, Dropout, Flatten, Dense, Input, InputLayer
-from keras.applications.inception_v3 import InceptionV3
-from keras.applications.vgg16 import VGG16
-from keras.applications.imagenet_utils import preprocess_input, _obtain_input_shape
-from keras import activations, initializations, regularizers, constraints
-from keras.utils.np_utils import to_categorical
+from ..preprocessing.image import ImageDataGenerator, array_to_img, img_to_array, load_img
+from ..models import Sequential
+from ..layers import Convolution2D, MaxPooling2D
+from ..layers import Activation, Dropout, Flatten, Dense, Input, InputLayer
+from ..applications.inception_v3 import InceptionV3
+from ..applications.vgg16 import VGG16
+from ..applications.imagenet_utils import preprocess_input, _obtain_input_shape
+from .. import activations, initializations, regularizers, constraints
+from ..utils.np_utils import to_categorical
 
 import os
 import numpy as np
