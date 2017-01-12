@@ -98,7 +98,7 @@ def create_labels(dir_):
     labels = to_categorical(labels)
     return labels, nb_labels
 
-def get_bottleneck_file_paths(val_):
+def get_bottleneck_file_paths(validation):
     val_ = ""
     if validation:
         val_ = "val_"
@@ -206,9 +206,11 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
 if __name__ == "__main__":
     start = time.time()
     #retrieve_images()
+    t0 = time.time()
+    print 'retrieving images took {} seconds...'.format( t0 - start)
     sample_bottleneck_features()
     t1 = time.time()
-    print 'bottleneck generation took {} seconds...'.format( t1 - start)
+    print 'bottleneck generation took {} seconds...'.format( t1 - t0)
     hist_ = train_top_model()
     t2 = time.time()
     print 'training the model took {} seconds...'.format(t2 - t1)
