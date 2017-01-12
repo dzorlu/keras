@@ -206,12 +206,12 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
     print 'model trained'
     return hist_
 
-if __name__ == "__main__":
-    key_string = retrieve_images()
-    start = time.time()
-    sample_bottleneck_features(key_string)
-    t1 = time.time()
-    print 'bottleneck generation took {} seconds...'.format( t1 - start)
-    hist_ = train_top_model()
-    t2 = time.time()
-    print 'training the model took {} seconds...'.format(t2 - t1)
+
+key_string = retrieve_images()
+start = time.time()
+sample_bottleneck_features(key_string)
+t1 = time.time()
+print 'bottleneck generation took {} seconds...'.format( t1 - start)
+hist_ = train_top_model()
+t2 = time.time()
+print 'training the model took {} seconds...'.format(t2 - t1)
