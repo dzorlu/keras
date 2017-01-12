@@ -543,12 +543,13 @@ class NumpyArrayIterator(Iterator):
                              'with shape', self.X.shape)
         channels_axis = 3 if dim_ordering == 'tf' else 1
         if self.X.shape[channels_axis] not in {1, 3, 4}:
-            raise ValueError('NumpyArrayIterator is set to use the '
-                             'dimension ordering convention "' + dim_ordering + '" '
-                             '(channels on axis ' + str(channels_axis) + '), i.e. expected '
-                             'either 1, 3 or 4 channels on axis ' + str(channels_axis) + '. '
-                             'However, it was passed an array with shape ' + str(self.X.shape) +
-                             ' (' + str(self.X.shape[channels_axis]) + ' channels).')
+            pass
+            # raise warning('NumpyArrayIterator is set to use the '
+            #                  'dimension ordering convention "' + dim_ordering + '" '
+            #                  '(channels on axis ' + str(channels_axis) + '), i.e. expected '
+            #                  'either 1, 3 or 4 channels on axis ' + str(channels_axis) + '. '
+            #                  'However, it was passed an array with shape ' + str(self.X.shape) +
+            #                  ' (' + str(self.X.shape[channels_axis]) + ' channels).')
         if y is not None:
             self.y = np.asarray(y)
         else:

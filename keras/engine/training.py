@@ -844,6 +844,7 @@ class Model(Container):
                 batch_logs['batch'] = batch_index
                 batch_logs['size'] = len(batch_ids)
                 callbacks.on_batch_begin(batch_index, batch_logs)
+                # magic happens here
                 outs = f(ins_batch)
                 if not isinstance(outs, list):
                     outs = [outs]
@@ -1245,7 +1246,7 @@ class Model(Container):
                 In this case you should make sure to specify
                 sample_weight_mode="temporal" in compile().
             class_weight: optional dictionary mapping
-                lass indices (integers) to
+                class indices (integers) to
                 a weight (float) to apply to the model's loss for the samples
                 from this class during training.
                 This can be useful to tell the model to "pay more attention" to
