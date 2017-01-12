@@ -16,7 +16,7 @@ import time
 
 import boto.s3
 from boto.s3.key import Key
-import zipfile
+import os
 
 # dimensions of our images.
 img_width, img_height = 299, 299
@@ -51,10 +51,9 @@ def retrieve_images():
     unzip_file(IMAGE_FILE_NAME)
     print("images unzipped..")
 
-def unzip_file(file_to_unzip):
-    zip_ref = zipfile.ZipFile(IMAGE_DIRECTORY + file_to_unzip , 'r')
-    zip_ref.extractall(IMAGE_DIRECTORY)
-    zip_ref.close()
+def unzip_file():
+    cmd = 'jar -xf /tmp/data.zip'
+    os.system(cmd)
 
 def persist_to_s3(target_bucket, file_to_persist):
     # send it to s3ta
@@ -107,7 +106,7 @@ def get_bottleneck_file_paths(val_):
     return file_path_x, file_path_y
 
 def save_bottleneck_features(x,y,validation=False):
-    filename_x, filename_y = get_bottleneck_filenames(validation)
+    filename_x, filename_y = get_bottleneck_file_paths(validation)
     np.save(open(filename_x, 'w'), x)
     np.save(open(filename_y, 'w'), y)
     persist_to_s3(MODEL_BUCKET, filename_x)
@@ -203,12 +202,12 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
     print 'model trained'
     return hist_
 
-
-#key_string = retrieve_images()
-start = time.time()
-sample_bottleneck_features()
-t1 = time.time()
-print 'bottleneck generation took {} seconds...'.format( t1 - start)
-hist_ = train_top_model()
-t2 = time.time()
-print 'training the model took {} seconds...'.format(t2 - t1)
+if __name__ == "__main__":
+    start = time.time()
+    retrieve_images()
+    sample_bottleneck_features()
+    t1 = time.time()
+    print 'bottleneck generation took {} seconds...'.format( t1 - start)
+    hist_ = train_top_model()
+    t2 = time.time()
+    print 'training the model took {} seconds...'.format(t2 - t1)
