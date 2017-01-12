@@ -37,7 +37,7 @@ VALID_DATA_DIR =  "data/validation"
 TOP_MODEL_WEIGHTS_PATH = IMAGE_DIRECTORY + "bottleneck_fc_model.h5"
 nb_epoch = 50
 BATCH_SIZE = 64
-SAMPLE_SIZE = BATCH_SIZE * 400
+SAMPLE_SIZE = BATCH_SIZE * 10
 VALIDATION_FRACTION = 0.2
 VAL_SAMPLE_SIZE = SAMPLE_SIZE * VALIDATION_FRACTION
 NB_WORKERS = 4
@@ -61,7 +61,7 @@ def persist_to_s3(target_bucket, file_to_persist):
     s3c = boto.s3.connect_to_region(REGION)
     b = s3c.get_bucket(target_bucket)
     k = Key(b)
-    k.key = date.today().strftime("%m-%d-%Y")
+    k.key = file_to_persist
     k.set_contents_from_filename(file_to_persist)
 
 def persist_model_to_s3(model):
