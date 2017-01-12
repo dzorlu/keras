@@ -6,7 +6,7 @@ from keras.models import Sequential
 from keras.layers import Convolution2D, MaxPooling2D
 from keras.layers import Activation, Dropout, Flatten, Dense, Input, InputLayer
 from keras.applications.inception_v3 import InceptionV3
-from keras import activations, initializations, regularizers, constraints
+from keras. import activations, initializations, regularizers, constraints
 
 import os
 import numpy as np
@@ -29,8 +29,8 @@ MODEL_BUCKET = "trained-models-keras"
 IMAGE_DIRECTORY = "/tmp/"
 REGION = "us-east-1"
 
-TRAIN_DATA_DIR = IMAGE_DIRECTORY + "train"
-VALID_DATA_DIR = IMAGE_DIRECTORY + "validation"
+TRAIN_DATA_DIR = IMAGE_DIRECTORY + "data/train"
+VALID_DATA_DIR = IMAGE_DIRECTORY + "data/validation"
 
 #TRAIN_DATA_DIR = '/Users/denizzorlu/style/data/train'
 #VALID_DATA_DIR = '/Users/denizzorlu/style/data/validation'
@@ -49,7 +49,7 @@ NB_WORKERS = 4
 def retrieve_images():
     retrieve_from_s3(incoming_bucket = IMAGE_BUCKET, file_to_retrieve = IMAGE_FILE_NAME)
     unzip_file(IMAGE_FILE_NAME)
-    return key_string
+    print("images unzipped..")
 
 def unzip_file(file_to_unzip):
     zip_ref = zipfile.ZipFile(IMAGE_DIRECTORY + file_to_unzip , 'r')
@@ -204,9 +204,9 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
     return hist_
 
 
-key_string = retrieve_images()
+#key_string = retrieve_images()
 start = time.time()
-sample_bottleneck_features(key_string)
+sample_bottleneck_features()
 t1 = time.time()
 print 'bottleneck generation took {} seconds...'.format( t1 - start)
 hist_ = train_top_model()
