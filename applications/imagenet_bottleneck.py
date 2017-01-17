@@ -38,7 +38,7 @@ VALID_DATA_DIR =  "data/validation"
 TOP_MODEL_WEIGHTS_PATH = IMAGE_DIRECTORY + "bottleneck_fc_model.h5"
 nb_epoch = 50
 BATCH_SIZE = 64
-SAMPLE_SIZE = BATCH_SIZE * 100
+SAMPLE_SIZE = BATCH_SIZE * 1000
 VALIDATION_FRACTION = 0.2
 VAL_SAMPLE_SIZE = SAMPLE_SIZE * VALIDATION_FRACTION
 NB_WORKERS = 4
@@ -135,13 +135,13 @@ def sample_bottleneck_features():
     # nothing else. no augmention. we have plenty of images
     datagen = ImageDataGenerator(rescale=1./255)
 
-    # Training
+    # Training.
     print 'generating training bottlenecks'
     generator = datagen.flow_from_directory(
         TRAIN_DATA_DIR,
         target_size=(img_width, img_height),
         batch_size=BATCH_SIZE,
-        shuffle=False,
+        shuffle=False, #generating bottlenecks sequentially
         class_mode='categorical')
 
     nb_samples_rounded = int(SAMPLE_SIZE - SAMPLE_SIZE % float(BATCH_SIZE))
@@ -157,7 +157,7 @@ def sample_bottleneck_features():
             VALID_DATA_DIR,
             target_size=(img_width, img_height),
             batch_size=BATCH_SIZE,
-            shuffle=False,
+            shuffle=False, #generating bottlenecks sequentially
             class_mode='categorical')
     nb_validation_samples_rounded = int(VAL_SAMPLE_SIZE - VAL_SAMPLE_SIZE % float(BATCH_SIZE))
     x_val, y_val = model.bottleneck_generator(generator, nb_validation_samples_rounded, nb_worker = NB_WORKERS)
@@ -189,8 +189,8 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
         metrics=['accuracy']
         )
 
-    datagen = ImageDataGenerator()
-    generator = datagen.flow(x,y)
+    # datagen = ImageDataGenerator()
+    # generator = datagen.flow(x,y, shuffle=True)
 
     # scans the entire dataset for each epoch
     hist_ = model.fit(x, y,
