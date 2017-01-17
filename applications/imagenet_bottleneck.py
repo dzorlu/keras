@@ -17,6 +17,7 @@ import time
 import boto.s3
 from boto.s3.key import Key
 import os
+import sys
 
 # dimensions of our images.
 img_width, img_height = 299, 299
@@ -140,6 +141,7 @@ def sample_bottleneck_features():
         TRAIN_DATA_DIR,
         target_size=(img_width, img_height),
         batch_size=BATCH_SIZE,
+        shuffle=False,
         class_mode='categorical')
 
     nb_samples_rounded = int(SAMPLE_SIZE - SAMPLE_SIZE % float(BATCH_SIZE))
@@ -155,6 +157,7 @@ def sample_bottleneck_features():
             VALID_DATA_DIR,
             target_size=(img_width, img_height),
             batch_size=BATCH_SIZE,
+            shuffle=False,
             class_mode='categorical')
     nb_validation_samples_rounded = int(VAL_SAMPLE_SIZE - VAL_SAMPLE_SIZE % float(BATCH_SIZE))
     x_val, y_val = model.bottleneck_generator(generator, nb_validation_samples_rounded, nb_worker = NB_WORKERS)
@@ -193,7 +196,7 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
     hist_ = model.fit(x, y,
         batch_size = BATCH_SIZE,
         shuffle=True,
-        validation_data = (x_val, y_val),
+        #validation_data = (x_val, y_val),
         nb_epoch = nb_epoch)
 
     persist_model_to_s3(model)
@@ -203,7 +206,11 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
 
 if __name__ == "__main__":
     start = time.time()
-    #retrieve_images()
+    retrieve = sys.argv[1]
+    if retrieve == True:
+        print 'retieve images'
+        retrieve_images()
+        break
     t0 = time.time()
     print 'retrieving images took {} seconds...'.format( t0 - start)
     sample_bottleneck_features()
