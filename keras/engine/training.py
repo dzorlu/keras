@@ -400,7 +400,8 @@ def generator_queue(generator, max_q_size=1,
                     wait_time=0.05, nb_worker=1, pickle_safe=False):
     """Builds a queue out of a data generator.
     If pickle_safe, use a multiprocessing approach. Else, use threading.
-    Used in `fit_generator`, `evaluate_generator`, `predict_generator`.
+    Used in `fit_generator`, `evaluate_generator`, `predict_generator`,
+    `bottleneck_generator`
     """
     generator_threads = []
     if pickle_safe:
@@ -1881,5 +1882,5 @@ class Model(Container):
             data_gen_queue.close()
         # if len(all_outs) == 1:
         #     return all_outs[0]
-        print ("returning x, y in shape {} and {}".format(len(all_outs), len(labels)))
+        print ("returning x, y in shape {} and {}".format(len(all_outs[0]), len(labels[0])))
         return all_outs, labels
