@@ -47,6 +47,14 @@ NB_WORKERS = 4
 """"""
 #TODO: Move this to util folder
 
+def str_to_bool(s):
+    if s == 'True':
+         return True
+    elif s == 'False':
+         return False
+    else:
+         raise ValueError
+
 def retrieve_images():
     print("retrieving images..")
     retrieve_from_s3(incoming_bucket = IMAGE_BUCKET, file_to_retrieve = IMAGE_FILE_NAME)
@@ -142,7 +150,7 @@ def sample_bottleneck_features():
         target_size=(img_width, img_height),
         batch_size=BATCH_SIZE,
         shuffle=False, #generating bottlenecks sequentially
-        class_mode='categorical')
+        )
 
     nb_samples_rounded = int(SAMPLE_SIZE - SAMPLE_SIZE % float(BATCH_SIZE))
     x, y = model.bottleneck_generator(generator, nb_samples_rounded, nb_worker = NB_WORKERS)
@@ -158,7 +166,7 @@ def sample_bottleneck_features():
             target_size=(img_width, img_height),
             batch_size=BATCH_SIZE,
             shuffle=False, #generating bottlenecks sequentially
-            class_mode='categorical')
+            )
     nb_validation_samples_rounded = int(VAL_SAMPLE_SIZE - VAL_SAMPLE_SIZE % float(BATCH_SIZE))
     x_val, y_val = model.bottleneck_generator(generator, nb_validation_samples_rounded, nb_worker = NB_WORKERS)
 
@@ -206,12 +214,13 @@ def train_top_model(date_=time.strftime("%Y_%m_%d")):
 
 if __name__ == "__main__":
     start = time.time()
-    retrieve = sys.argv[1]
-    if retrieve == 'True':
+    args = sys.argv[1:]
+    if str_to_bool(args[0]):
         retrieve_images()
     t0 = time.time()
     print 'retrieving images took {} seconds...'.format( t0 - start)
-    sample_bottleneck_features()
+    if str_to_bool(args[1]):
+        sample_bottleneck_features()
     t1 = time.time()
     print 'bottleneck generation took {} seconds...'.format( t1 - t0)
     hist_ = train_top_model()

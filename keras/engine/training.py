@@ -950,7 +950,7 @@ class Model(Container):
                 ins_batch = slice_X(ins[:-1], batch_ids) + [ins[-1]]
             else:
                 ins_batch = slice_X(ins, batch_ids)
-
+            # magic
             batch_outs = f(ins_batch)
             if isinstance(batch_outs, list):
                 if batch_index == 0:
