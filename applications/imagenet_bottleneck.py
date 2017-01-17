@@ -18,6 +18,7 @@ import boto.s3
 from boto.s3.key import Key
 import os
 import sys
+import gzip
 
 # dimensions of our images.
 img_width, img_height = 299, 299
@@ -38,7 +39,7 @@ VALID_DATA_DIR =  "data/validation"
 TOP_MODEL_WEIGHTS_PATH = IMAGE_DIRECTORY + "bottleneck_fc_model.h5"
 nb_epoch = 50
 BATCH_SIZE = 64
-SAMPLE_SIZE = BATCH_SIZE * 1000
+SAMPLE_SIZE = BATCH_SIZE * 10
 VALIDATION_FRACTION = 0.2
 VAL_SAMPLE_SIZE = SAMPLE_SIZE * VALIDATION_FRACTION
 NB_WORKERS = 4
@@ -64,6 +65,10 @@ def retrieve_images():
 def unzip_file():
     cmd = 'jar -xf /tmp/data.zip'
     os.system(cmd)
+
+def zip_file(filename, content):
+    with gzip.open("{}.gz".format(filename), 'wb') as f:
+        f.write(content)
 
 def persist_to_s3(target_bucket, file_to_persist):
     # send it to s3ta
@@ -117,8 +122,8 @@ def get_bottleneck_file_paths(validation):
 
 def save_bottleneck_features(x,y,validation=False):
     filename_x, filename_y = get_bottleneck_file_paths(validation)
-    np.save(open(filename_x, 'w'), x)
-    np.save(open(filename_y, 'w'), y)
+    zip_file(filename_x, x)
+    zip_file(filename_y, y)
     persist_to_s3(MODEL_BUCKET, filename_x)
     persist_to_s3(MODEL_BUCKET, filename_y)
 
