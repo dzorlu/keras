@@ -140,8 +140,7 @@ def sample_bottleneck_features():
         TRAIN_DATA_DIR,
         target_size=(img_width, img_height),
         batch_size=BATCH_SIZE,
-        class_mode='categorical',
-        shuffle=True)
+        class_mode='categorical')
 
     nb_samples_rounded = int(SAMPLE_SIZE - SAMPLE_SIZE % float(BATCH_SIZE))
     x, y = model.bottleneck_generator(generator, nb_samples_rounded, nb_worker = NB_WORKERS)
@@ -156,8 +155,7 @@ def sample_bottleneck_features():
             VALID_DATA_DIR,
             target_size=(img_width, img_height),
             batch_size=BATCH_SIZE,
-            class_mode='categorical',
-            shuffle=True)
+            class_mode='categorical')
     nb_validation_samples_rounded = int(VAL_SAMPLE_SIZE - VAL_SAMPLE_SIZE % float(BATCH_SIZE))
     x_val, y_val = model.bottleneck_generator(generator, nb_validation_samples_rounded, nb_worker = NB_WORKERS)
 
