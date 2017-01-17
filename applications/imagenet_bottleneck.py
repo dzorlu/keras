@@ -210,7 +210,6 @@ if __name__ == "__main__":
     if retrieve == True:
         print 'retieve images'
         retrieve_images()
-        break
     t0 = time.time()
     print 'retrieving images took {} seconds...'.format( t0 - start)
     sample_bottleneck_features()
