@@ -205,12 +205,12 @@ def sample_bottleneck_features():
     print 'generated validation bottlenecks..'
     print('*'*10)
 
-    print 'bottleneck features saved..'
+    print 'bottleneck features sav
     sys.stdout.flush()
 
 def train_top_model():
     x, y = load_bottleneck_features()
-    # remove y's that we have not retrieved yet. 
+    # remove y's that we have not retrieved yet.
     y = y[:,y.sum(axis=0)>0]
 
     x_val, y_val = load_bottleneck_features(validation=True)
@@ -247,16 +247,21 @@ def train_top_model():
     print 'model trained'
     return hist_
 
+def fine_tune_model():
+
+
+
+
 if __name__ == "__main__":
     start = time.time()
     args = sys.argv[1:]
+    t0 = time.time()
     if str_to_bool(args[0]):
         retrieve_images()
-        t0 = time.time()
         print 'retrieving images took {} seconds...'.format( t0 - start)
+    t1 = time.time()
     if str_to_bool(args[1]):
         sample_bottleneck_features()
-        t1 = time.time()
         print 'bottleneck generation took {} seconds...'.format( t1 - t0)
     hist_ = train_top_model()
     t2 = time.time()
