@@ -180,7 +180,7 @@ def sample_bottleneck_features():
 
     nb_samples_rounded = int(SAMPLE_SIZE - SAMPLE_SIZE % float(BATCH_SIZE))
     x, y = model.bottleneck_generator(generator, nb_samples_rounded, nb_worker = NB_WORKERS)
-    x, y = x[0].astype('float32'), y[0].astype('float32')
+    x, y = x[0].astype('float32', copy=False), y[0].astype('float32', copy=False)
 
     print('*'*10)
     print 'saving bottleneck features to disk..'
