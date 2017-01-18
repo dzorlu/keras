@@ -13,8 +13,8 @@ import numpy as np
 from collections import OrderedDict
 from itertools import chain
 import time
-
-import boto3.s3
+import math
+import boto
 import os
 import sys
 from filechunkio import FileChunkIO
@@ -39,7 +39,7 @@ VALID_DATA_DIR =  "data/validation"
 TOP_MODEL_WEIGHTS_PATH = IMAGE_DIRECTORY + "bottleneck_fc_model.h5"
 nb_epoch = 50
 BATCH_SIZE = 64
-SAMPLE_SIZE = 150000
+SAMPLE_SIZE = 120000
 VAL_SAMPLE_SIZE = 30000
 NB_WORKERS = 4
 
@@ -179,7 +179,7 @@ def sample_bottleneck_features():
 
     nb_samples_rounded = int(SAMPLE_SIZE - SAMPLE_SIZE % float(BATCH_SIZE))
     x, y = model.bottleneck_generator(generator, nb_samples_rounded, nb_worker = NB_WORKERS)
-    x, y = x[0], y[0]
+    x, y = x[0].astype('float32'), y[0].astype('float32')
 
     print('*'*10)
     print 'saving bottleneck features to disk..'
@@ -197,6 +197,7 @@ def sample_bottleneck_features():
             )
     nb_validation_samples_rounded = int(VAL_SAMPLE_SIZE - VAL_SAMPLE_SIZE % float(BATCH_SIZE))
     x_val, y_val = model.bottleneck_generator(generator, nb_validation_samples_rounded, nb_worker = NB_WORKERS)
+    x_val, y_val = x_val[0].astype('float32'), y_val[0].astype('float32')
 
     print('*'*10)
     print 'saving bottleneck features to disk..'
@@ -209,6 +210,7 @@ def sample_bottleneck_features():
 
 def train_top_model():
     x, y = load_bottleneck_features()
+    # remove y's that we have not retrieved yet. 
     y = y[:,y.sum(axis=0)>0]
 
     x_val, y_val = load_bottleneck_features(validation=True)
