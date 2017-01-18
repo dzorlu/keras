@@ -131,8 +131,8 @@ def load_bottleneck_features(validation=False):
     file_path_x, file_path_y = get_bottleneck_file_paths(validation)
     retrieve_from_s3(MODEL_BUCKET, file_path_x)
     retrieve_from_s3(MODEL_BUCKET, file_path_y)
-    x = np.load(open(file_path_x))
-    y = np.load(open(file_path_y))
+    x = np.load(open(file_path_x))['arr_0']
+    y = np.load(open(file_path_y))['arr_0']
     return (x, y)
 
 """"""
