@@ -205,7 +205,7 @@ def sample_bottleneck_features():
     print 'generated validation bottlenecks..'
     print('*'*10)
 
-    print 'bottleneck features sav
+    print 'bottleneck features save...'
     sys.stdout.flush()
 
 def train_top_model():
@@ -248,9 +248,7 @@ def train_top_model():
     return hist_
 
 def fine_tune_model():
-
-
-
+    pass
 
 if __name__ == "__main__":
     start = time.time()
