@@ -121,10 +121,10 @@ def persist_to_disk(filename, dat):
 
 def save_bottleneck_features(x,y,validation=False):
     file_path_x, file_path_y = get_bottleneck_file_paths(validation)
-    persist_to_disk(filename_x, x)
-    persist_to_disk(filename_y, y)
-    persist_to_s3(MODEL_BUCKET, filename_x)
-    persist_to_s3(MODEL_BUCKET, filename_y)
+    persist_to_disk(file_path_x, x)
+    persist_to_disk(file_path_y, y)
+    persist_to_s3(MODEL_BUCKET, file_path_x)
+    persist_to_s3(MODEL_BUCKET, file_path_y)
 
 
 def load_bottleneck_features(validation=False):
