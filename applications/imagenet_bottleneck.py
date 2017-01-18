@@ -14,11 +14,10 @@ from collections import OrderedDict
 from itertools import chain
 import time
 
-import boto.s3
-from boto.s3.key import Key
+import boto3.s3
 import os
 import sys
-import cPickle as pickle
+from filechunkio import FileChunkIO
 
 # dimensions of our images.
 img_width, img_height = 299, 299
@@ -34,6 +33,7 @@ REGION = "us-east-1"
 TRAIN_DATA_DIR =  "data/train"
 VALID_DATA_DIR =  "data/validation"
 
+
 #TRAIN_DATA_DIR = '/Users/denizzorlu/style/data/train'
 #VALID_DATA_DIR = '/Users/denizzorlu/style/data/validation'
 TOP_MODEL_WEIGHTS_PATH = IMAGE_DIRECTORY + "bottleneck_fc_model.h5"
@@ -46,7 +46,6 @@ NB_WORKERS = 4
 
 """"""
 #TODO: Move this to util folder
-
 def str_to_bool(s):
     if s == 'True':
          return True
@@ -67,11 +66,36 @@ def unzip_file():
 
 def persist_to_s3(target_bucket, file_to_persist):
     # send it to s3ta
-    s3c = boto.s3.connect_to_region(REGION)
+    s3c = boto.connect_s3()
     b = s3c.get_bucket(target_bucket)
     k = Key(b)
     k.key = file_to_persist
     k.set_contents_from_filename(file_to_persist)
+
+def persist_to_s3_multipart(target_bucket, file_to_persist):
+    s3c = boto.connect_s3()
+    b = s3c.get_bucket(target_bucket)
+    source_size = os.stat(file_to_persist).st_size
+
+    # Create a multipart upload request
+    mp = b.initiate_multipart_upload(os.path.basename(file_to_persist))
+
+    # Use a chunk size of 500 MiB (feel free to change this)
+    chunk_size = 524288000
+    chunk_count = int(math.ceil(source_size / float(chunk_size)))
+
+    # Send the file parts, using FileChunkIO to create a file-like object
+    # that points to a certain byte range within the original file. We
+    # set bytes to never exceed the original file size.
+    for i in range(chunk_count):
+        offset = chunk_size * i
+        bytes = min(chunk_size, source_size - offset)
+        with FileChunkIO(file_to_persist, 'r', offset=offset,
+                             bytes=bytes) as fp:
+                             mp.upload_part_from_file(fp, part_num=i + 1)
+
+    # Finish the upload
+    mp.complete_upload()
 
 def persist_model_to_s3(model):
     model.save_weights(TOP_MODEL_WEIGHTS_PATH)
@@ -122,14 +146,15 @@ def save_bottleneck_features(x,y,validation=False):
     file_path_x, file_path_y = get_bottleneck_file_paths(validation)
     persist_to_disk(file_path_x, x)
     persist_to_disk(file_path_y, y)
-    persist_to_s3(MODEL_BUCKET, file_path_x)
-    persist_to_s3(MODEL_BUCKET, file_path_y)
+    persist_to_s3_multipart(MODEL_BUCKET, file_path_x)
+    persist_to_s3_multipart(MODEL_BUCKET, file_path_y)
 
 
-def load_bottleneck_features(validation=False):
+def load_bottleneck_features(validation=False, from_s3=True):
     file_path_x, file_path_y = get_bottleneck_file_paths(validation)
-    retrieve_from_s3(MODEL_BUCKET, file_path_x)
-    retrieve_from_s3(MODEL_BUCKET, file_path_y)
+    if from_s3:
+        retrieve_from_s3(MODEL_BUCKET, file_path_x)
+        retrieve_from_s3(MODEL_BUCKET, file_path_y)
     x = np.load(open(file_path_x))['arr_0']
     y = np.load(open(file_path_y))['arr_0']
     return (x, y)
@@ -182,9 +207,12 @@ def sample_bottleneck_features():
     print 'bottleneck features saved..'
     sys.stdout.flush()
 
-def train_top_model(date_=time.strftime("%Y_%m_%d")):
+def train_top_model():
     x, y = load_bottleneck_features()
-    x_val, y_val = load_bottleneck_features(validation=True)
+    y = y[:,y.sum(axis=0)>0]
+
+    #x_val, y_val = load_bottleneck_features(validation=True)
+    y_val = y_val[:,y_val.sum(axis=0)>0]
 
     print('found saved bottleneck features with shape: {}'.format(x.shape))
 
@@ -222,12 +250,12 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     if str_to_bool(args[0]):
         retrieve_images()
-    t0 = time.time()
-    print 'retrieving images took {} seconds...'.format( t0 - start)
+        t0 = time.time()
+        print 'retrieving images took {} seconds...'.format( t0 - start)
     if str_to_bool(args[1]):
         sample_bottleneck_features()
-    t1 = time.time()
-    print 'bottleneck generation took {} seconds...'.format( t1 - t0)
+        t1 = time.time()
+        print 'bottleneck generation took {} seconds...'.format( t1 - t0)
     hist_ = train_top_model()
     t2 = time.time()
     print 'training the model took {} seconds...'.format(t2 - t1)
