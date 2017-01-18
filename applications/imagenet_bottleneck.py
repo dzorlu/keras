@@ -18,7 +18,7 @@ import boto.s3
 from boto.s3.key import Key
 import os
 import sys
-import gzip
+import cPickle as pickle
 
 # dimensions of our images.
 img_width, img_height = 299, 299
@@ -39,7 +39,7 @@ VALID_DATA_DIR =  "data/validation"
 TOP_MODEL_WEIGHTS_PATH = IMAGE_DIRECTORY + "bottleneck_fc_model.h5"
 nb_epoch = 50
 BATCH_SIZE = 64
-SAMPLE_SIZE = BATCH_SIZE * 10
+SAMPLE_SIZE = BATCH_SIZE * 1000
 VALIDATION_FRACTION = 0.2
 VAL_SAMPLE_SIZE = SAMPLE_SIZE * VALIDATION_FRACTION
 NB_WORKERS = 4
@@ -65,10 +65,6 @@ def retrieve_images():
 def unzip_file():
     cmd = 'jar -xf /tmp/data.zip'
     os.system(cmd)
-
-def zip_file(filename, content):
-    with gzip.open("{}.gz".format(filename), 'wb') as f:
-        f.write(content)
 
 def persist_to_s3(target_bucket, file_to_persist):
     # send it to s3ta
@@ -115,15 +111,18 @@ def create_labels(dir_):
 def get_bottleneck_file_paths(validation):
     val_ = ""
     if validation:
-        val_ = "val_"
-    file_path_x = "{}bottleneck_x_{}.npy".format(IMAGE_DIRECTORY, val_)
-    file_path_y = "{}bottleneck_y_{}.npy".format(IMAGE_DIRECTORY,val_)
+        val_ = "_val"
+    file_path_x = "{}bottleneck_x{}.npz".format(IMAGE_DIRECTORY, val_)
+    file_path_y = "{}bottleneck_y{}.npz".format(IMAGE_DIRECTORY,val_)
     return file_path_x, file_path_y
 
+def persist_to_disk(filename, dat):
+    np.savez_compressed(filename, dat)
+
 def save_bottleneck_features(x,y,validation=False):
-    filename_x, filename_y = get_bottleneck_file_paths(validation)
-    zip_file(filename_x, x)
-    zip_file(filename_y, y)
+    file_path_x, file_path_y = get_bottleneck_file_paths(validation)
+    persist_to_disk(filename_x, x)
+    persist_to_disk(filename_y, y)
     persist_to_s3(MODEL_BUCKET, filename_x)
     persist_to_s3(MODEL_BUCKET, filename_y)
 
@@ -132,11 +131,8 @@ def load_bottleneck_features(validation=False):
     file_path_x, file_path_y = get_bottleneck_file_paths(validation)
     retrieve_from_s3(MODEL_BUCKET, file_path_x)
     retrieve_from_s3(MODEL_BUCKET, file_path_y)
-
     x = np.load(open(file_path_x))
     y = np.load(open(file_path_y))
-
-    x, y = x[0,:,:,:], y[0,:,:]
     return (x, y)
 
 """"""
@@ -159,9 +155,12 @@ def sample_bottleneck_features():
 
     nb_samples_rounded = int(SAMPLE_SIZE - SAMPLE_SIZE % float(BATCH_SIZE))
     x, y = model.bottleneck_generator(generator, nb_samples_rounded, nb_worker = NB_WORKERS)
+    x, y = x[0], y[0]
 
-    save_bottleneck_features(x,y)
-    print 'generated training bottlenecks'
+    print('*'*10)
+    print 'saving bottleneck features to disk..'
+    save_bottleneck_features(x, y)
+    print 'generated training bottlenecks..'
     print('*'*10)
 
     # Validation
@@ -175,12 +174,14 @@ def sample_bottleneck_features():
     nb_validation_samples_rounded = int(VAL_SAMPLE_SIZE - VAL_SAMPLE_SIZE % float(BATCH_SIZE))
     x_val, y_val = model.bottleneck_generator(generator, nb_validation_samples_rounded, nb_worker = NB_WORKERS)
 
-    print 'generated validation bottlenecks'
-    save_bottleneck_features(x_val,y_val, validation=True)
-
-
-    print 'bottleneck features saved....'
     print('*'*10)
+    print 'saving bottleneck features to disk..'
+    save_bottleneck_features(x_val,y_val, validation=True)
+    print 'generated validation bottlenecks..'
+    print('*'*10)
+
+    print 'bottleneck features saved..'
+    sys.stdout.flush()
 
 def train_top_model(date_=time.strftime("%Y_%m_%d")):
     x, y = load_bottleneck_features()
