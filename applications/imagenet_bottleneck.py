@@ -15,6 +15,7 @@ from itertools import chain
 import time
 import math
 import boto
+from boto.s3.key import Key
 import os
 import sys
 from filechunkio import FileChunkIO
