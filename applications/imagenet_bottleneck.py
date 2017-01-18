@@ -211,7 +211,7 @@ def train_top_model():
     x, y = load_bottleneck_features()
     y = y[:,y.sum(axis=0)>0]
 
-    #x_val, y_val = load_bottleneck_features(validation=True)
+    x_val, y_val = load_bottleneck_features(validation=True)
     y_val = y_val[:,y_val.sum(axis=0)>0]
 
     print('found saved bottleneck features with shape: {}'.format(x.shape))
