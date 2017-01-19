@@ -40,7 +40,7 @@ VALID_DATA_DIR =  "data/validation"
 TOP_MODEL_WEIGHTS_PATH = IMAGE_DIRECTORY + "bottleneck_fc_model.h5"
 nb_epoch = 50
 BATCH_SIZE = 64
-SAMPLE_SIZE = 120000
+SAMPLE_SIZE = 100000
 VAL_SAMPLE_SIZE = 30000
 NB_WORKERS = 4
 
@@ -145,8 +145,10 @@ def persist_to_disk(filename, dat):
 
 def save_bottleneck_features(x,y,validation=False):
     file_path_x, file_path_y = get_bottleneck_file_paths(validation)
+    print('persist to disk first..')
     persist_to_disk(file_path_x, x)
     persist_to_disk(file_path_y, y)
+    print('uploading to S3..')
     persist_to_s3_multipart(MODEL_BUCKET, file_path_x)
     persist_to_s3_multipart(MODEL_BUCKET, file_path_y)
 
@@ -183,7 +185,7 @@ def sample_bottleneck_features():
     x, y = x[0].astype('float32', copy=False), y[0].astype('float32', copy=False)
 
     print('*'*10)
-    print 'saving bottleneck features to disk..'
+    print 'saving bottleneck features..'
     save_bottleneck_features(x, y)
     print 'generated training bottlenecks..'
     print('*'*10)
@@ -201,7 +203,7 @@ def sample_bottleneck_features():
     x_val, y_val = x_val[0].astype('float32'), y_val[0].astype('float32')
 
     print('*'*10)
-    print 'saving bottleneck features to disk..'
+    print 'saving bottleneck features..'
     save_bottleneck_features(x_val,y_val, validation=True)
     print 'generated validation bottlenecks..'
     print('*'*10)
